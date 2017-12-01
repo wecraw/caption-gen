@@ -1,7 +1,8 @@
 import requests
 from rauth import OAuth2Service
 from bs4 import BeautifulSoup
-import pickle 
+import pickle
+import sys
 
 base_url = 'http://api.genius.com'
 name='genius',
@@ -46,7 +47,35 @@ def artist_id_from_song_api_path(song_api_path):
     artist_id = json['response']['song']['album']['artist']['id']
     return artist_id
 
-def scrape_search(search_term):
+def get_artist_id(artist_name):
+    search_url = base_url + '/search'
+    data = {'q': artist_name}
+    response = requests.get(search_url, params=data, headers=headers)
+    json = response.json()
+
+    for hit in json['response']['hits']:
+        
+        i = input(hit['result']['primary_artist']['name'] + ' ok?\n y for yes, n for no\n').lower()
+        
+        while i != 'y' and i != 'n':
+            print('invalid input')
+            i = str(input(hit['result']['primary_artist']['name'] + ' ok?\n y for yes, n for no\n')).lower
+            
+        if i == 'y':
+            print('hi')
+            print(hit['result']['primary_artist']['id'])
+            return hit['result']['primary_artist']['id']
+        elif i == 'n':
+            print('next')
+        
+    print('artist not found')
+    sys.exit()
+
+    
+
+def scrape_search(artist_name):
+  artist_id = get_artist_id(artist_name)
+  search_term = '/artists/'+ str(artist_id) + '/songs'
   search_url = base_url + '/search'
   data = {'q': search_term, 'per_page': 20} #20 is max number of pages that we can return
   response = requests.get(search_url, params=data, headers=headers)
@@ -57,6 +86,7 @@ def scrape_search(search_term):
 
   for hit in json['response']['hits']:
     try:
+        #print(hit)
         song_info = hit
         song_api_path = song_info['result']['api_path']
         song = lyrics_from_song_api_path(song_api_path)
@@ -105,6 +135,9 @@ def scrape_search(search_term):
         save_model(artist_id, model)
 
         print('processed song')
+        print(artist_id)
+        print('length: '+ str(len(model)))
+        #print(model)
     except:
         print('failed processing song')
         print(hit)
